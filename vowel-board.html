@@ -685,6 +685,9 @@
                 color: #484848 !important;
             }
 
+            /* Hide moon phase on mobile — not worth the risk */
+            #mm-cycle-label { display: none !important; }
+
             /* Clock */
             #clock {
                 font-size: 0.5rem !important;
@@ -694,6 +697,109 @@
 
             /* Performance — no scanlines on mobile */
             body::after { display: none !important; }
+        }
+
+        /* ── POST-MIDNIGHT BUTTONS ─────────────────────────── */
+        #post-midnight-btns {
+            position: fixed;
+            top: 24px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 28px;
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 2s ease;
+        }
+        #post-midnight-btns.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #btn-return, #btn-burn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 1px solid #1e1e1e;
+            background: transparent;
+            color: #282828;
+            font-size: 0.85rem;
+            cursor: crosshair;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.3s ease, border-color 0.3s ease,
+                        box-shadow 0.3s ease;
+            padding: 0;
+            line-height: 1;
+        }
+
+        #btn-return:hover {
+            color: #888;
+            border-color: #444;
+            box-shadow: 0 0 8px rgba(255,255,255,0.06);
+        }
+
+        /* Burn button — blue glow */
+        #btn-burn {
+            border-color: #0a0a1a;
+            color: #111122;
+        }
+        #btn-burn:hover {
+            color: #3366ff;
+            border-color: #1133aa;
+            box-shadow: 0 0 10px rgba(50,100,255,0.25);
+        }
+
+        /* Slow pulse on both — barely alive */
+        @keyframes btn-breathe {
+            0%, 100% { opacity: 0.6; }
+            50%       { opacity: 1; }
+        }
+        #post-midnight-btns.visible #btn-return,
+        #post-midnight-btns.visible #btn-burn {
+            animation: btn-breathe 4s ease-in-out infinite;
+        }
+        #post-midnight-btns.visible #btn-burn {
+            animation-delay: 2s;
+        }
+
+        /* ── RETURN STATE — ritual line diminishes ──────────── */
+        /* Handled via JS — ritual-tension shrinks slowly */
+
+        /* ── BURN OVERLAY ───────────────────────────────────── */
+        #burn-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            pointer-events: none;
+            opacity: 0;
+        }
+        @keyframes blue-fire-blink {
+            0%   { opacity: 0; background: #000015; }
+            8%   { opacity: 1; background: #0011ff; }
+            16%  { opacity: 0.3; background: #001166; }
+            24%  { opacity: 1; background: #002299; }
+            32%  { opacity: 0.1; background: #0033ff; }
+            40%  { opacity: 0.9; background: #0000aa; }
+            50%  { opacity: 0.2; background: #1144ff; }
+            60%  { opacity: 1; background: #0022cc; }
+            70%  { opacity: 0.4; background: #003399; }
+            80%  { opacity: 1; background: #0011ee; }
+            90%  { opacity: 0.6; background: #002288; }
+            100% { opacity: 1; background: #000022; }
+        }
+        #burn-overlay.burning {
+            pointer-events: auto;
+            animation: blue-fire-blink 1.4s steps(1) forwards;
+        }
+
+        /* Mobile buttons */
+        @media (max-width: 768px) {
+            #post-midnight-btns { top: 16px; padding: 0 18px; }
+            #btn-return, #btn-burn { width: 38px; height: 38px; font-size: 1rem; }
         }
     </style>
 </head>
@@ -834,6 +940,15 @@
     </div>
 
 </div>
+
+<!-- POST-MIDNIGHT BUTTONS — appear after demon reveal -->
+<div id="post-midnight-btns">
+    <button id="btn-return" onclick="doReturn()" title="Return to the beginning">↺</button>
+    <button id="btn-burn"   onclick="doBurn()"   title="Burn and exit">✦</button>
+</div>
+
+<!-- BLUE FIRE OVERLAY — burn transition -->
+<div id="burn-overlay"></div>
 
 <div id="clock">stillness</div>
 
@@ -1440,6 +1555,11 @@ function revealCard(phase, demonIndex, demonName, demonDesc, lunar, vowel, final
     seq.forEach(({ id, val, delay }) => {
         setTimeout(() => { txt(id, val); on(id); }, delay);
     });
+
+    // Buttons appear after everything has settled
+    setTimeout(() => {
+        postBtns.classList.add('visible');
+    }, 6200);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1459,6 +1579,8 @@ function render() {
         hint.classList.remove('ready');
         const confirmBtn = document.getElementById('morning-confirm');
         if (confirmBtn) { confirmBtn.textContent = ''; confirmBtn.classList.remove('ready'); }
+        // Hide post-midnight buttons
+        document.getElementById('post-midnight-btns').classList.remove('visible');
 
     } else if (phase === 'evening') {
         document.getElementById('phase-evening').classList.add('visible');
@@ -1727,6 +1849,44 @@ function tick() {
 }
 setInterval(tick, 1000);
 tick();
+
+// ═══════════════════════════════════════════════════════════════
+// POST-MIDNIGHT ACTIONS
+// ═══════════════════════════════════════════════════════════════
+const postBtns = document.getElementById('post-midnight-btns');
+const burnOverlay = document.getElementById('burn-overlay');
+
+// RETURN — go back to morning, ritual line slowly diminishes
+function doReturn() {
+    // Hide buttons
+    postBtns.classList.remove('visible');
+
+    // Reset state
+    S.phase = 'morning'; S.vowel = null; S.color = null; S.sealed = false;
+    waitingActive = false;
+    midnightFired = false;
+    wind2355Fired = false; silenceFired = false;
+
+    // Spider back to normal
+    spiderWrap.classList.remove('scarlet', 'vanished', 'flicker-watch', 'flicker-done');
+
+    // Ritual line starts full and diminishes slowly — the inverse of waiting
+    // Line height shrinks over the hours until next midnight
+    tensionEl.style.height = (window.innerHeight * 0.6) + 'px';
+    tensionEl.classList.remove('near', 'imminent');
+    tensionEl.style.background = '#1a1a1a';
+    tensionEl.style.transition = 'height 0.5s ease';
+
+    render();
+}
+
+// BURN — blue fire, exit to the common world
+function doBurn() {
+    burnOverlay.classList.add('burning');
+    setTimeout(() => {
+        window.location.href = 'https://www.google.com';
+    }, 1500);
+}
 
 // ═══════════════════════════════════════════════════════════════
 // INIT
