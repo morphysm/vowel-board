@@ -1132,8 +1132,21 @@
 // Declared first. AudioContext on first click (browser policy).
 // ═══════════════════════════════════════════════════════════════
 
-let audioCtx = null;
-let audioUnlocked = false;
+// Pre-init AudioContext on load — desktop doesn't require a gesture to create it.
+// Context starts suspended; first click resumes it. Subsequent hovers work immediately.
+let audioCtx = (() => {
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        return ctx;
+    } catch(e) { return null; }
+})();
+let audioReady = false;
+
+function markAudioReady() {
+    if (!audioCtx) return;
+    if (audioReady) return;
+    if (audioCtx.state === 'running') audioReady = true;
+}
 
 const CAVE = {
     A: { res:80,  rumble:28, width:0.8, brightness:320, rise:0.9, dur:3.5 },
@@ -1152,9 +1165,9 @@ function unlockAudio() {
 function tryUnlock() {
     if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        audioUnlocked = true;
     }
     if (audioCtx.state === 'suspended') audioCtx.resume();
+    markAudioReady();
 }
 document.addEventListener('click',      tryUnlock, { passive: true });
 document.addEventListener('touchstart', tryUnlock, { passive: true });
@@ -1169,7 +1182,6 @@ if (primerEl) {
         // 1. Create AudioContext inside the gesture
         if (!audioCtx) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            audioUnlocked = true;
         }
         if (audioCtx.state === 'suspended') audioCtx.resume();
 
@@ -1180,6 +1192,7 @@ if (primerEl) {
         silentSrc.buffer = silentBuf;
         silentSrc.connect(audioCtx.destination);
         silentSrc.start(0);
+        markAudioReady();
 
         // 3. Dismiss the overlay
         primerEl.classList.add('dismissed');
@@ -1192,8 +1205,8 @@ if (primerEl) {
 }
 
 function bowCello(vowel, forceDur) {
-    if (!audioCtx || !audioUnlocked) return;
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    if (!audioCtx || !audioReady) return;
+    if (audioCtx.state !== 'running') return;
     if (windCooldowns[vowel]) return;
 
     const cave = CAVE[vowel] || CAVE.O;
@@ -1538,8 +1551,8 @@ const SHOFAR_PITCH = [
 ];
 
 function blowShofar(phase) {
-    if (!audioCtx || !audioUnlocked) return;
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    if (!audioCtx) return;
+    if (audioCtx.state !== 'running') return;
 
     const ctx  = audioCtx;
     const now  = ctx.currentTime;
@@ -1971,7 +1984,13 @@ function sealEvening() {
 // Enter seals morning → evening (desktop)
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && S.phase === 'morning' && S.vowel) confirmVowel();
-
+    if ((e.key === 't' || e.key === 'T') && window.location.hash === '#debug') {
+        unlockAudio();
+        if (!S.vowel) S.vowel = 'A';
+        if (!S.color) S.color = VOWEL_COLORS[S.vowel];
+        S.phase = 'waiting';
+        triggerMidnightMass();
+    }
 });
 
 // ═══════════════════════════════════════════════════════════════
