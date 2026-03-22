@@ -1,4 +1,3 @@
-[morphysm-vowel-board.md](https://github.com/user-attachments/files/26168240/morphysm-vowel-board.md)
 # MORPHYSM — VOWEL BOARD INTERFACE
 
 ---
