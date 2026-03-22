@@ -26,7 +26,8 @@
             background: var(--bg);
             color: var(--fg);
             font-family: 'IBM Plex Mono', monospace;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
             cursor: crosshair;
         }
 
@@ -78,7 +79,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
+            padding: 3rem 1rem 5rem;
             z-index: 10;
         }
 
@@ -240,7 +242,7 @@
         #mm-flicker {
             font-family: 'Unbounded', sans-serif;
             font-weight: 900;
-            font-size: clamp(5rem, 18vw, 10rem);
+            font-size: clamp(4rem, 18vw, 9rem);
             line-height: 1;
             min-height: 1.1em;
             display: flex;
@@ -457,18 +459,15 @@
 
         /* Counter replaces spider during wait */
         #waiting-counter {
-            position: absolute;
-            top: 0; left: 0;
-            width: 160px;
-            height: 160px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             opacity: 0;
-            transform: scale(0.8);
+            transform: scale(0.85);
             transition: opacity 1.2s ease, transform 1.2s ease;
             pointer-events: none;
+            margin-bottom: 1.8rem;
         }
         #waiting-counter.visible {
             opacity: 1;
@@ -477,36 +476,61 @@
         #counter-time {
             font-family: 'Unbounded', sans-serif;
             font-weight: 900;
-            font-size: 1rem;
+            font-size: 1.4rem;
             letter-spacing: 0.08em;
-            color: #2a2a2a;
+            color: rgba(255,255,255,0.15);
             line-height: 1;
             transition: color 1s ease, text-shadow 1s ease;
+            animation: counter-pulse 3s ease-in-out infinite;
+        }
+        @keyframes counter-pulse {
+            0%, 100% { color: rgba(255,255,255,0.12); text-shadow: 0 0 8px rgba(255,255,255,0.06); }
+            50%       { color: rgba(255,255,255,0.28); text-shadow: 0 0 20px rgba(255,255,255,0.14); }
         }
         #counter-label {
             font-size: 0.38rem;
             letter-spacing: 0.3em;
-            color: #1a1a1a;
+            color: rgba(255,255,255,0.08);
             text-transform: uppercase;
             margin-top: 0.5rem;
             transition: color 1s ease;
         }
 
-        /* Growing ritual line — rises from bottom as midnight approaches */
-        #ritual-tension {
-            position: fixed;
-            bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 1px;
-            height: 0px;
-            background: #1a1a1a;
-            z-index: 15;
-            pointer-events: none;
-            transition: background 3s ease, box-shadow 3s ease;
+        /* ── WAITING INSCRIPTION ───────────────────────────── */
+        #waiting-inscription {
+            text-align: center;
+            opacity: 0;
+            animation: inscription-rise 1.8s ease forwards;
+            animation-delay: 0.4s;
         }
-        #ritual-tension.near     { background: #2a2a2a; }
-        #ritual-tension.imminent { background: #550000; box-shadow: 0 0 8px #330000; }
+        @keyframes inscription-rise {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        #waiting-line1 {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.72rem;
+            letter-spacing: 0.25em;
+            color: #cc2200;
+            text-transform: lowercase;
+            margin-bottom: 0.6rem;
+            text-shadow: 0 0 12px rgba(200,34,0,0.35);
+        }
+        #waiting-line2 {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.78rem;
+            font-style: italic;
+            letter-spacing: 0.12em;
+            color: rgba(255,255,255,0.12);
+            text-transform: lowercase;
+            line-height: 1.6;
+            max-width: 320px;
+            margin: 0 auto;
+            animation: counter-pulse 3s ease-in-out infinite;
+            animation-delay: 0.2s;
+        }
+
+        /* ritual-tension line removed */
 
         /* Clock intensity tiers */
         #clock.near     { color: #2a2a2a !important; }
@@ -519,27 +543,26 @@
                 width: 110px !important;
                 height: 110px !important;
             }
-            #waiting-counter {
-                width: 110px !important;
-                height: 110px !important;
-            }
-            #counter-time { font-size: 0.85rem !important; }
+            #counter-time { font-size: 1.1rem !important; }
         }
         /* ── MOBILE — single breakpoint, same approach as Sigil.Forge ── */
         @media (max-width: 768px) {
 
             html, body {
                 cursor: auto;
-                overscroll-behavior: none;
+                overscroll-behavior-x: none;
                 -webkit-tap-highlight-color: transparent;
+                overflow: auto !important;
+                height: auto !important;
             }
 
             #stage {
                 min-height: 100vh;
                 height: auto;
-                padding: 2rem 1rem;
-                justify-content: center;
+                padding: 2rem 1rem 5rem;
+                justify-content: flex-start;
                 overflow-x: hidden;
+                overflow-y: visible;
             }
 
             /* Spider smaller */
@@ -611,10 +634,7 @@
                 cursor: pointer !important;
                 min-height: 44px !important;
             }
-            #morning-confirm.ready {
-                color: #888 !important;
-                border-color: #555 !important;
-            }
+
 
             /* Evening phase — brighter text */
             #evening-label {
@@ -628,23 +648,19 @@
                 width: 200px !important;
                 font-size: 1rem !important;
             }
-            /* Evening seal button always visible on mobile */
+            /* Evening seal button on mobile */
             #evening-seal-btn {
-                display: inline-block !important;
                 margin-top: 1.2rem !important;
                 min-height: 44px !important;
                 padding: 0.9em 2.2em !important;
                 font-size: 0.52rem !important;
-                letter-spacing: 0.3em !important;
-                color: #787878 !important;
-                border: 1px solid #444 !important;
                 cursor: pointer !important;
             }
 
-            /* Midnight card — fully scrollable */
+            /* Midnight card — fully scrollable via page scroll */
             #phase-midnight {
-                overflow-y: auto !important;
-                max-height: 88vh !important;
+                overflow-y: visible !important;
+                max-height: none !important;
                 width: 100% !important;
                 padding-bottom: 3rem !important;
             }
@@ -685,14 +701,12 @@
                 color: #484848 !important;
             }
 
-            /* Hide moon phase on mobile — not worth the risk */
-            #mm-cycle-label { display: none !important; }
-
-            /* Clock */
+            /* Clock — stays fixed to viewport bottom while scrolling */
             #clock {
                 font-size: 0.5rem !important;
                 letter-spacing: 0.22em !important;
                 bottom: 14px !important;
+                position: fixed !important;
             }
 
             /* Performance — no scanlines on mobile */
@@ -722,9 +736,9 @@
             width: 32px;
             height: 32px;
             border-radius: 50%;
-            border: 1px solid #1e1e1e;
+            border: 1px solid #2e2e2e;
             background: transparent;
-            color: #282828;
+            color: #484848;
             font-size: 0.85rem;
             cursor: crosshair;
             display: flex;
@@ -737,63 +751,109 @@
         }
 
         #btn-return:hover {
-            color: #888;
-            border-color: #444;
-            box-shadow: 0 0 8px rgba(255,255,255,0.06);
+            color: #aaa;
+            border-color: #666;
+            box-shadow: 0 0 10px rgba(255,255,255,0.1);
         }
 
-        /* Burn button — blue glow */
+        /* Burn button — green glow */
         #btn-burn {
-            border-color: #0a0a1a;
-            color: #111122;
+            border-color: #2a3d00;
+            color: #3a5200;
         }
         #btn-burn:hover {
-            color: #3366ff;
-            border-color: #1133aa;
-            box-shadow: 0 0 10px rgba(50,100,255,0.25);
+            color: #aaff00;
+            border-color: #44aa00;
+            box-shadow: 0 0 10px rgba(170,255,0,0.25);
         }
 
-        /* Slow pulse on both — barely alive */
+        /* Slow pulse on both — slightly more alive */
         @keyframes btn-breathe {
-            0%, 100% { opacity: 0.6; }
+            0%, 100% { opacity: 0.55; }
             50%       { opacity: 1; }
         }
-        #post-midnight-btns.visible #btn-return,
-        #post-midnight-btns.visible #btn-burn {
-            animation: btn-breathe 4s ease-in-out infinite;
+        @keyframes btn-breathe-return {
+            0%, 100% { opacity: 0.55; box-shadow: 0 0 4px rgba(255,255,255,0.04); }
+            50%       { opacity: 1;    box-shadow: 0 0 8px rgba(255,255,255,0.09); }
+        }
+        @keyframes btn-breathe-burn {
+            0%, 100% { opacity: 0.6;  box-shadow: 0 0 5px rgba(120,200,0,0.10); }
+            50%       { opacity: 1;    box-shadow: 0 0 12px rgba(160,240,0,0.22); }
+        }
+        #post-midnight-btns.visible #btn-return {
+            animation: btn-breathe-return 4s ease-in-out infinite;
         }
         #post-midnight-btns.visible #btn-burn {
+            animation: btn-breathe-burn 4s ease-in-out infinite;
             animation-delay: 2s;
         }
 
         /* ── RETURN STATE — ritual line diminishes ──────────── */
-        /* Handled via JS — ritual-tension shrinks slowly */
 
-        /* ── BURN OVERLAY ───────────────────────────────────── */
+        /* ── BURN OVERLAY — strobe flicker ─────────────────── */
         #burn-overlay {
             position: fixed;
             inset: 0;
             z-index: 200;
             pointer-events: none;
             opacity: 0;
+            background: #000;
         }
-        @keyframes blue-fire-blink {
-            0%   { opacity: 0; background: #000015; }
-            8%   { opacity: 1; background: #0011ff; }
-            16%  { opacity: 0.3; background: #001166; }
-            24%  { opacity: 1; background: #002299; }
-            32%  { opacity: 0.1; background: #0033ff; }
-            40%  { opacity: 0.9; background: #0000aa; }
-            50%  { opacity: 0.2; background: #1144ff; }
-            60%  { opacity: 1; background: #0022cc; }
-            70%  { opacity: 0.4; background: #003399; }
-            80%  { opacity: 1; background: #0011ee; }
-            90%  { opacity: 0.6; background: #002288; }
-            100% { opacity: 1; background: #000022; }
+
+        @keyframes burn-strobe {
+            0%   { opacity: 0;    background: #000000; }
+            4%   { opacity: 0.85; background: #ffffff; }
+            8%   { opacity: 0;    background: #000000; }
+            12%  { opacity: 0.7;  background: #cc0000; }
+            16%  { opacity: 0;    background: #000000; }
+            20%  { opacity: 0.9;  background: #ffffff; }
+            24%  { opacity: 0;    background: #000000; }
+            28%  { opacity: 0.6;  background: #880000; }
+            32%  { opacity: 0;    background: #000000; }
+            36%  { opacity: 0.85; background: #ffffff; }
+            40%  { opacity: 0;    background: #000000; }
+            44%  { opacity: 0.75; background: #ff2200; }
+            48%  { opacity: 0;    background: #000000; }
+            52%  { opacity: 0.9;  background: #ffffff; }
+            56%  { opacity: 0;    background: #000000; }
+            60%  { opacity: 0.65; background: #dd0000; }
+            64%  { opacity: 0;    background: #000000; }
+            68%  { opacity: 0.88; background: #ffffff; }
+            72%  { opacity: 0;    background: #000000; }
+            76%  { opacity: 0.7;  background: #ff0000; }
+            80%  { opacity: 0;    background: #000000; }
+            84%  { opacity: 0.9;  background: #ffffff; }
+            88%  { opacity: 0;    background: #000000; }
+            92%  { opacity: 0.72; background: #cc0000; }
+            96%  { opacity: 0;    background: #000000; }
+            100% { opacity: 0.95; background: #ffffff; }
         }
+
         #burn-overlay.burning {
             pointer-events: auto;
-            animation: blue-fire-blink 1.4s steps(1) forwards;
+            opacity: 1;
+            animation: burn-strobe 0.18s steps(1) infinite;
+        }
+
+        /* ── BAPHOMET SCREEN — space black + image, shown during burn ── */
+        #baphomet-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 190;
+            background: #000000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        #baphomet-screen.active {
+            display: flex;
+        }
+        #baphomet-screen img {
+            max-width: 100%;
+            max-height: 100%;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         /* Mobile buttons */
@@ -801,18 +861,116 @@
             #post-midnight-btns { top: 16px; padding: 0 18px; }
             #btn-return, #btn-burn { width: 38px; height: 38px; font-size: 1rem; }
         }
+
+
+
+        /* ── SEAL BUTTONS — glowing red ritual seals ────────── */
+        @keyframes seal-breathe {
+            0%, 100% { box-shadow: 0 0 6px rgba(200,34,0,0.2); border-color: #550000; }
+            50%       { box-shadow: 0 0 20px rgba(200,34,0,0.55), 0 0 40px rgba(200,34,0,0.15); border-color: #880000; }
+        }
+
+        /* Evening seal — always present in evening phase */
+        #evening-seal-btn {
+            display: inline-block;
+            margin-top: 1.4rem;
+            padding: 0.8em 2.4em;
+            border: 1px solid #550000;
+            background: transparent;
+            color: #cc2200;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.58rem;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            cursor: crosshair;
+            text-shadow: 0 0 10px rgba(200,34,0,0.4);
+            animation: seal-breathe 2.5s ease-in-out infinite;
+        }
+
+        /* Morning confirm — only shown after vowel selected */
+        #morning-confirm {
+            display: none;
+            margin-top: 1.4rem;
+            padding: 0.8em 2.4em;
+            border: 1px solid #1e1e1e;
+            background: transparent;
+            color: #2a2a2a;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.58rem;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            cursor: crosshair;
+            transition: color 0.3s ease, border-color 0.3s ease;
+        }
+        #morning-confirm.ready {
+            display: inline-block;
+            color: #cc2200;
+            border-color: #550000;
+            text-shadow: 0 0 10px rgba(200,34,0,0.4);
+            animation: seal-breathe 2.5s ease-in-out infinite;
+        }
+
+        /* ── AUDIO PRIMER — mobile tap-to-enter screen ──────── */
+        #audio-primer {
+            position: fixed;
+            inset: 0;
+            z-index: 2000;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: opacity 0.8s ease;
+        }
+        #audio-primer.dismissed {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #primer-glyph {
+            font-family: 'Unbounded', sans-serif;
+            font-weight: 900;
+            font-size: clamp(2.5rem, 12vw, 5rem);
+            color: #1a1a1a;
+            margin-bottom: 2rem;
+            letter-spacing: -0.02em;
+            user-select: none;
+        }
+        #primer-label {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.58rem;
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            color: #2a2a2a;
+            user-select: none;
+        }
+        @keyframes primer-breathe {
+            0%, 100% { color: #1e1e1e; }
+            50%       { color: #383838; }
+        }
+        #primer-glyph  { animation: primer-breathe 3s ease-in-out infinite; }
+        #primer-label  { animation: primer-breathe 3s ease-in-out infinite; animation-delay: 1.5s; }
+
+        /* Only show on touch devices — hide on desktop */
+        @media (hover: hover) and (pointer: fine) {
+            #audio-primer { display: none; }
+        }
     </style>
 </head>
 <body>
 
+<!-- AUDIO PRIMER — touch devices only, dismissed on first tap -->
+<div id="audio-primer" role="button" aria-label="Tap to enter">
+    <div id="primer-glyph">✦</div>
+    <div id="primer-label">tap to enter</div>
+</div>
+
 <div id="color-wash"></div>
 <div id="mm-strobe"></div>
-<div id="ritual-tension"></div>
 
 <div id="stage">
 
     <div id="spider-wrap">
-        <div id="waiting-counter"><div id="counter-time">—</div><div id="counter-label">until midnight</div></div>
         <svg id="spider-svg" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" fill="none">
             <defs>
                 <radialGradient id="bodyGrad" cx="50%" cy="40%" r="50%">
@@ -883,6 +1041,9 @@
         </svg>
     </div>
 
+    <!-- COUNTDOWN — sibling of spider-wrap, not inside it -->
+    <div id="waiting-counter"><div id="counter-time">—</div><div id="counter-label">until midnight</div></div>
+
     <div id="title">The Vowel Board</div>
     <div id="subtitle">Sonnet des Voyelles — A. Rimbaud, 1871</div>
 
@@ -904,13 +1065,20 @@
     </div>
 
     <div class="phase" id="phase-evening">
-        <div id="evening-label">The day fades. Assign a color to <span id="evening-vowel">—</span>.</div>
+        <div id="evening-label">The day fades. Write what comes.</div>
         <div>
             <input type="text" id="color-input" placeholder="hex, name, or nothing" autocomplete="off" spellcheck="false"/>
             <span id="color-preview-dot"></span>
         </div>
         <div id="enter-to-seal" style="margin-top:1rem;font-size:0.6rem;color:#1e1e1e;letter-spacing:0.2em;text-transform:uppercase;">press enter to seal</div>
-        <div id="evening-seal-btn" style="display:none;" onclick="sealEvening()">seal</div>
+        <div id="evening-seal-btn" onclick="sealEvening()">seal</div>
+    </div>
+
+    <div class="phase" id="phase-waiting">
+        <div id="waiting-inscription">
+            <div id="waiting-line1">the seal is set.</div>
+            <div id="waiting-line2">return at midnight. your demon will be revealed.</div>
+        </div>
     </div>
 
     <div class="phase" id="phase-midnight">
@@ -947,7 +1115,12 @@
     <button id="btn-burn"   onclick="doBurn()"   title="Burn and exit">✦</button>
 </div>
 
-<!-- BLUE FIRE OVERLAY — burn transition -->
+<!-- BAPHOMET SCREEN — space black + image, underlays the strobe -->
+<div id="baphomet-screen">
+    <img src="angel-folder/bph.jpeg" alt="">
+</div>
+
+<!-- BURN STROBE OVERLAY — flickers on top of baphomet screen -->
 <div id="burn-overlay"></div>
 
 <div id="clock">stillness</div>
@@ -986,6 +1159,21 @@ function tryUnlock() {
 document.addEventListener('click',      tryUnlock, { passive: true });
 document.addEventListener('touchstart', tryUnlock, { passive: true });
 document.addEventListener('touchend',   tryUnlock, { passive: true });
+
+// ── AUDIO PRIMER — dismiss on first tap, unlocks AudioContext ──
+const primerEl = document.getElementById('audio-primer');
+if (primerEl) {
+    function dismissPrimer() {
+        tryUnlock();
+        primerEl.classList.add('dismissed');
+        // Remove from DOM after fade
+        setTimeout(() => { primerEl.remove(); }, 900);
+        primerEl.removeEventListener('touchstart', dismissPrimer);
+        primerEl.removeEventListener('click',      dismissPrimer);
+    }
+    primerEl.addEventListener('touchstart', dismissPrimer, { passive: true });
+    primerEl.addEventListener('click',      dismissPrimer);
+}
 
 function bowCello(vowel, forceDur) {
     if (!audioCtx || !audioUnlocked) return;
@@ -1178,24 +1366,79 @@ function getLunarPhase() {
 function computeMidnightAssignment() {
     const phase      = Math.floor(Math.random() * 12);
     const lunar      = getLunarPhase();
-    // Map 8 lunar phases to 6 cycle depths for demon index
-    const cycleDepth = Math.min(5, Math.floor((lunar.index / 7) * 6));
-    const demonIndex = (cycleDepth * 12) + phase + 1;
+
+    // Vowel offsets spread the base across the full 72
+    const vowelOffsets = { A: 0, E: 14, I: 28, U: 42, O: 57 };
+    const vowelOffset  = vowelOffsets[S.vowel] || 0;
+
+    // Lunar day (0-29) adds a daily drift across the full cycle
+    const lunarShift = Math.floor(lunar.day); // 0-29
+
+    // Combine: vowel base + lunar day + random phase, mod 72, 1-indexed
+    const demonIndex = ((vowelOffset + lunarShift + phase) % 72) + 1;
+
     return { phase, lunar, demonIndex };
 }
 
 // ═══════════════════════════════════════════════════════════════
-// STATE
+// STATE + SESSION PERSISTENCE
+// Saves ritual progress across reloads. Clears at 01:00, doReturn, doBurn.
 // ═══════════════════════════════════════════════════════════════
 localStorage.removeItem('vb_phase');
 localStorage.removeItem('vb_vowel');
 localStorage.removeItem('vb_color');
 
-const S = { phase:'morning', vowel:null, color:null, sealed:false };
+const SESSION_KEY = 'vb_ritual';
+
+function saveSession() {
+    try {
+        localStorage.setItem(SESSION_KEY, JSON.stringify({
+            phase:  S.phase,
+            vowel:  S.vowel,
+            color:  S.color,
+            sealed: S.sealed,
+            savedAt: Date.now()
+        }));
+    } catch(e) {}
+}
+
+function clearSession() {
+    try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
+}
+
+function loadSession() {
+    try {
+        const raw = localStorage.getItem(SESSION_KEY);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        const saved = new Date(data.savedAt);
+        const now   = new Date();
+        const sameDay = saved.toDateString() === now.toDateString();
+        const yesterday = new Date(now);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const savedYesterday = saved.toDateString() === yesterday.toDateString();
+        // Stale if saved yesterday and we're past 01:00
+        if (savedYesterday && now.getHours() >= 1) return null;
+        if (!sameDay && !savedYesterday) return null;
+        return data;
+    } catch(e) { return null; }
+}
+
+// Restore session or start fresh
+const _saved = loadSession();
+const S = _saved
+    ? { phase: _saved.phase, vowel: _saved.vowel, color: _saved.color, sealed: _saved.sealed }
+    : { phase:'morning', vowel:null, color:null, sealed:false };
 
 const VOWEL_COLORS = {
     A:'#111111', E:'#e8e0d4', I:'#cc2200', U:'#2d6a3f', O:'#1a3a6e'
 };
+
+// ── DOM refs needed throughout ────────────────────────────────
+const clockEl     = document.getElementById('clock');
+const counterEl   = document.getElementById('waiting-counter');
+const counterTime = document.getElementById('counter-time');
+const spiderWrap  = document.getElementById('spider-wrap');
 
 // ═══════════════════════════════════════════════════════════════
 // EYE TRACKING
@@ -1415,6 +1658,9 @@ function blowShofar(phase) {
 
 function triggerMidnightMass() {
     S.phase = 'midnight';
+    saveSession();
+    // Mark reveal happened — prevents flicker re-run on back-button return
+    try { localStorage.setItem('vb_revealed', '1'); } catch(e) {}
     render();
 
     const { phase, lunar, demonIndex } = computeMidnightAssignment();
@@ -1544,7 +1790,7 @@ function revealCard(phase, demonIndex, demonName, demonDesc, lunar, vowel, final
           delay: 2600 },
         { id:'mm-cycle-label', val: `${lunar.symbol}  ${lunar.name}  ·  phase ${phase}`,
           delay: 4000 },
-        { id:'mm-color-name',  val: S.color || 'unnamed',
+        { id:'mm-color-name',  val: S.color || '',
           delay: 5300 },
     ];
 
@@ -1589,6 +1835,14 @@ function render() {
         document.querySelectorAll('.v-btn').forEach(b => {
             b.classList.toggle('active', b.dataset.vowel === vowel);
         });
+
+    } else if (phase === 'waiting') {
+        document.getElementById('phase-waiting').classList.add('visible');
+        applyVowelWash(baseColor, 0.08);
+        document.querySelectorAll('.v-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.vowel === vowel);
+        });
+        document.getElementById('post-midnight-btns').classList.remove('visible');
 
     } else if (phase === 'midnight') {
         document.getElementById('phase-midnight').classList.add('visible');
@@ -1637,11 +1891,24 @@ document.querySelectorAll('.v-btn').forEach(btn => {
         }
     });
     btn.addEventListener('click', () => {
+        // Allow re-entry from waiting state — ritual stays fluid until midnight
+        if (S.phase === 'evening' && S.sealed) {
+            // Re-open morning — spider returns, counter hides, tension resets
+            S.phase = 'morning';
+            S.sealed = false;
+            S.color = null;
+            waitingActive = false;
+            spiderWrap.classList.remove('vanished');
+            counterEl.classList.remove('visible');
+            clockEl.classList.remove('near', 'imminent', 'midnight');
+            render();
+        }
         if (S.phase === 'morning') {
             unlockAudio();
             const v = btn.dataset.vowel;
             const changed = S.vowel !== v;
             S.vowel = v;
+            saveSession();
             document.querySelectorAll('.v-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             applyVowelWash(btn.dataset.color, 0.10);
@@ -1665,25 +1932,27 @@ function confirmVowel() {
         windCooldowns[S.vowel] = false;
         bowCello(S.vowel);
         S.phase = 'evening';
+        saveSession();
         render();
     }
 }
 
 function sealEvening() {
-    S.color = document.getElementById('color-input').value.trim() || VOWEL_COLORS[S.vowel];
+    S.color = document.getElementById('color-input').value.trim() || null;
     S.sealed = true;
-    triggerMidnightMass();
+    S.phase  = 'waiting';
+    saveSession();
+    render();
+    // Force counter visible immediately — don't wait for tick()
+    waitingActive = true;
+    spiderWrap.classList.add('vanished');
+    setTimeout(() => counterEl.classList.add('visible'), 700);
 }
 
 // Enter seals morning → evening (desktop)
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && S.phase === 'morning' && S.vowel) confirmVowel();
-    if (e.key === 'm' || e.key === 'M') {
-        unlockAudio();
-        if (!S.vowel) S.vowel = 'A';
-        if (!S.color) S.color = VOWEL_COLORS[S.vowel];
-        triggerMidnightMass();
-    }
+
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -1715,11 +1984,6 @@ colorInput.addEventListener('keypress', (e) => {
 // The anxious, inevitable approach to midnight.
 // Christmas eve on a sinking ship.
 // ═══════════════════════════════════════════════════════════════
-const clockEl     = document.getElementById('clock');
-const tensionEl   = document.getElementById('ritual-tension');
-const counterEl   = document.getElementById('waiting-counter');
-const counterTime = document.getElementById('counter-time');
-const spiderWrap  = document.getElementById('spider-wrap');
 
 let midnightFired   = false;
 let wind2355Fired   = false;
@@ -1764,7 +2028,7 @@ function tick() {
     }
 
     // ── WAITING STATE — active after color is sealed ─────────
-    if ((S.phase === 'evening' && S.sealed) || S.phase === 'waiting') {
+    if (S.phase === 'waiting') {
         enterWaiting();
         counterTime.textContent = fmtCountdown(secs);
 
@@ -1773,8 +2037,6 @@ function tick() {
         if (secs > 3600) {
             // Far — line barely grows, clock grey
             const growth = ((86400 - secs) / 86400) * 50;
-            tensionEl.style.height = growth + 'px';
-            tensionEl.classList.remove('near','imminent');
             clockEl.classList.remove('near','imminent','midnight');
             counterTime.style.color = '#2a2a2a';
             counterTime.style.textShadow = 'none';
@@ -1782,9 +2044,6 @@ function tick() {
         } else if (secs > 300) {
             // Near — < 1hr, line accelerates, clock brightens
             const pct = 1 - (secs / 3600);
-            tensionEl.style.height = (50 + pct * 150) + 'px';
-            tensionEl.classList.add('near');
-            tensionEl.classList.remove('imminent');
             clockEl.classList.add('near');
             clockEl.classList.remove('imminent','midnight');
             counterTime.style.color = '#3a3a3a';
@@ -1793,8 +2052,6 @@ function tick() {
             // Imminent — < 5min, line bleeds up the screen, red terror
             const pct = 1 - (secs / 300);
             const growth = Math.min(200 + pct * (VH - 220), VH - 30);
-            tensionEl.style.height = growth + 'px';
-            tensionEl.classList.add('imminent');
             clockEl.classList.add('imminent');
             clockEl.classList.remove('near','midnight');
             const r = Math.floor(60 + pct * 140);
@@ -1818,7 +2075,6 @@ function tick() {
                 audioCtx.suspend();
                 setTimeout(() => { if (audioCtx) audioCtx.resume(); }, 1100);
             }
-            tensionEl.style.height = (VH - 20) + 'px';
             clockEl.classList.add('midnight');
         }
     }
@@ -1830,8 +2086,6 @@ function tick() {
         if (!S.vowel) S.vowel = 'A';
         if (!S.color) S.color = VOWEL_COLORS[S.vowel];
         // Collapse the tension line
-        tensionEl.style.transition = 'height 0.3s ease';
-        tensionEl.style.height = '0px';
         triggerMidnightMass();
     }
 
@@ -1840,9 +2094,9 @@ function tick() {
         midnightFired = false; wind2355Fired = false;
         silenceFired  = false; waitingActive = false;
         S.phase = 'morning'; S.vowel = null; S.color = null; S.sealed = false;
+        clearSession();
         spiderWrap.classList.remove('vanished','scarlet');
         counterEl.classList.remove('visible');
-        tensionEl.style.height = '0px';
         clockEl.classList.remove('near','imminent','midnight');
         render();
     }
@@ -1866,31 +2120,74 @@ function doReturn() {
     waitingActive = false;
     midnightFired = false;
     wind2355Fired = false; silenceFired = false;
+    clearSession();
+    try { localStorage.removeItem('vb_revealed'); } catch(e) {}
 
     // Spider back to normal
     spiderWrap.classList.remove('scarlet', 'vanished', 'flicker-watch', 'flicker-done');
 
-    // Ritual line starts full and diminishes slowly — the inverse of waiting
-    // Line height shrinks over the hours until next midnight
-    tensionEl.style.height = (window.innerHeight * 0.6) + 'px';
-    tensionEl.classList.remove('near', 'imminent');
-    tensionEl.style.background = '#1a1a1a';
-    tensionEl.style.transition = 'height 0.5s ease';
 
     render();
 }
 
-// BURN — blue fire, exit to the common world
+// BURN — strobe flicker over space-black baphomet screen, then exit
 function doBurn() {
+    postBtns.classList.remove('visible');
+    clearSession();
+    try { localStorage.removeItem('vb_revealed'); } catch(e) {}
+    const bphScreen = document.getElementById('baphomet-screen');
+    bphScreen.classList.add('active');
+
+    // 1. Start the strobe
     burnOverlay.classList.add('burning');
+
+    // 2. Start the FADE-OUT at 2.4 seconds (The "Collapse")
     setTimeout(() => {
-        window.location.href = 'https://www.google.com';
-    }, 1500);
+        burnOverlay.style.transition = 'background 0.6s ease-out, opacity 0.6s ease-out';
+        burnOverlay.style.background = '#1aff1a';
+    }, 2400);
+
+    // 3. HARD STOP at exactly 3.0 seconds
+    setTimeout(() => {
+        burnOverlay.classList.remove('burning');
+
+        // --- THE DARK FLASH-BANG ---
+        burnOverlay.style.transition = 'none'; // Instant slam, no fade
+        burnOverlay.style.background = '#000000'; // Absolute Void
+        burnOverlay.style.opacity = '1';
+
+        // 4. Short "Impact" beat before exit (200ms)
+        setTimeout(() => {
+            window.location.href = 'https://www.google.com';
+        }, 250);
+    }, 3000);
 }
 
 // ═══════════════════════════════════════════════════════════════
-// INIT
+// INIT — restore session if present
 // ═══════════════════════════════════════════════════════════════
+
+// Restore session state on load
+if (_saved) {
+    if (S.vowel) {
+        const vowelColor = document.querySelector(`.v-btn[data-vowel="${S.vowel}"]`);
+        if (vowelColor) applyVowelWash(vowelColor.dataset.color, 0.18);
+    }
+    if (_saved.phase === 'midnight') {
+        const alreadyRevealed = localStorage.getItem('vb_revealed') === '1';
+        if (alreadyRevealed) {
+            // Back-button return after reveal — reset to clean morning
+            clearSession();
+            try { localStorage.removeItem('vb_revealed'); } catch(e) {}
+            S.phase = 'morning'; S.vowel = null; S.color = null; S.sealed = false;
+        } else {
+            // First time reaching midnight — run the full reveal
+            setTimeout(() => { triggerMidnightMass(); }, 300);
+        }
+    }
+    // waiting phase — tick() will pick up naturally
+}
+
 render();
 
 const observer = new MutationObserver(() => {
