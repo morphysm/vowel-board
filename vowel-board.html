@@ -242,7 +242,7 @@
         #mm-flicker {
             font-family: 'Unbounded', sans-serif;
             font-weight: 900;
-            font-size: clamp(4rem, 18vw, 9rem);
+            font-size: clamp(4rem, 15vw, 9rem);
             line-height: 1;
             min-height: 1.1em;
             display: flex;
@@ -1109,6 +1109,12 @@
 
 </div>
 
+<!-- MIDNIGHT GATEKEEPER — Only shows if user returns AFTER midnight -->
+<div id="midnight-gatekeeper" style="display:none; position:fixed; inset:0; z-index:3000; background:#000; flex-direction:column; align-items:center; justify-content:center; cursor:pointer;">
+    <div style="font-family:'Unbounded', sans-serif; font-weight:900; font-size:2rem; color:#cc2200; margin-bottom:1rem; text-shadow: 0 0 20px #440000;">THE HOUR HAS STRUCK</div>
+    <div style="font-family:'IBM Plex Mono', monospace; font-size:0.6rem; letter-spacing:0.4em; color:#484848; text-transform:uppercase;">tap to witness the reveal</div>
+</div>
+
 <!-- POST-MIDNIGHT BUTTONS — appear after demon reveal -->
 <div id="post-midnight-btns">
     <button id="btn-return" onclick="doReturn()" title="Return to the beginning">↺</button>
@@ -1157,6 +1163,45 @@ const CAVE = {
 };
 
 const windCooldowns = { A:false, E:false, I:false, U:false, O:false };
+
+// Async helper — guarantees context is running before critical sounds
+async function ensureAudioContextRunning() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+        await new Promise(r => setTimeout(r, 50)); // let system settle
+    }
+    audioReady = true;
+    return true;
+}
+
+// Keep-alive — plays silent buffer every 60s during waiting phase
+// Prevents browser from suspending AudioContext after long inactivity
+let keepAliveInterval = null;
+
+function startAudioKeepAlive() {
+    if (keepAliveInterval) clearInterval(keepAliveInterval);
+    keepAliveInterval = setInterval(() => {
+        if (!audioCtx) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        if (audioCtx.state === 'running') {
+            const silentBuf = audioCtx.createBuffer(1, 1, 22050);
+            const src = audioCtx.createBufferSource();
+            src.buffer = silentBuf;
+            src.connect(audioCtx.destination);
+            src.start();
+        }
+    }, 60000); // every 60 seconds
+}
+
+function stopAudioKeepAlive() {
+    if (keepAliveInterval) {
+        clearInterval(keepAliveInterval);
+        keepAliveInterval = null;
+    }
+}
 
 function unlockAudio() {
     tryUnlock();
@@ -1550,9 +1595,9 @@ const SHOFAR_PITCH = [
     69.3,  // phase 11 — C#2
 ];
 
-function blowShofar(phase) {
+async function blowShofar(phase) {
+    await ensureAudioContextRunning();
     if (!audioCtx) return;
-    if (audioCtx.state !== 'running') return;
 
     const ctx  = audioCtx;
     const now  = ctx.currentTime;
@@ -1687,12 +1732,22 @@ function blowShofar(phase) {
 }
 
 function triggerMidnightMass() {
+    // 1. HARDEN AUDIO: Force the context to wake up right before the blast
+    if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+
+    // 2. Update State
     S.phase = 'midnight';
+    stopAudioKeepAlive(); // midnight arrived — no longer needed
     saveSession();
+
     // Mark reveal happened — prevents flicker re-run on back-button return
     try { localStorage.setItem('vb_revealed', '1'); } catch(e) {}
+
     render();
 
+    // 3. Compute Assignment
     const { phase, lunar, demonIndex } = computeMidnightAssignment();
     const demon      = GOETIA[demonIndex];
     const demonName  = demon.name;
@@ -1980,19 +2035,12 @@ function sealEvening() {
     spiderWrap.classList.add('vanished');
     setTimeout(() => counterEl.classList.add('visible'), 700);
 }
-
 // Enter seals morning → evening (desktop)
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && S.phase === 'morning' && S.vowel) confirmVowel();
-    if ((e.key === 't' || e.key === 'T') && window.location.hash === '#debug') {
-        unlockAudio();
-        if (!S.vowel) S.vowel = 'A';
-        if (!S.color) S.color = VOWEL_COLORS[S.vowel];
-        S.phase = 'waiting';
-        triggerMidnightMass();
+    if (e.key === 'Enter' && S.phase === 'morning' && S.vowel) {
+        confirmVowel();
     }
 });
-
 // ═══════════════════════════════════════════════════════════════
 // COLOR INPUT (evening phase)
 // ═══════════════════════════════════════════════════════════════
@@ -2047,6 +2095,7 @@ function enterWaiting() {
     waitingActive = true;
     spiderWrap.classList.add('vanished');
     setTimeout(() => counterEl.classList.add('visible'), 700);
+    startAudioKeepAlive(); // keep context warm until midnight
 }
 
 function tick() {
@@ -2159,6 +2208,7 @@ function doReturn() {
     midnightFired = false;
     wind2355Fired = false; silenceFired = false;
     clearSession();
+    stopAudioKeepAlive();
     try { localStorage.removeItem('vb_revealed'); } catch(e) {}
 
     // Spider back to normal
@@ -2172,6 +2222,7 @@ function doReturn() {
 function doBurn() {
     postBtns.classList.remove('visible');
     clearSession();
+    stopAudioKeepAlive();
     try { localStorage.removeItem('vb_revealed'); } catch(e) {}
     const bphScreen = document.getElementById('baphomet-screen');
     bphScreen.classList.add('active');
@@ -2197,45 +2248,52 @@ function doBurn() {
         // 4. Short "Impact" beat before exit (200ms)
         setTimeout(() => {
             window.location.href = 'https://precisionneuro.io/';
-        }, 250);
+        }, 750);
     }, 3000);
 }
 
 // ═══════════════════════════════════════════════════════════════
-// INIT — restore session if present
+// DOCTRINAL INIT — The 2-Minute Grace Period
 // ═══════════════════════════════════════════════════════════════
-
-// Restore session state on load
 if (_saved) {
     if (S.vowel) {
-        const vowelColor = document.querySelector(`.v-btn[data-vowel="${S.vowel}"]`);
-        if (vowelColor) applyVowelWash(vowelColor.dataset.color, 0.18);
+        const btn = document.querySelector(`.v-btn[data-vowel="${S.vowel}"]`);
+        if (btn) applyVowelWash(btn.dataset.color, 0.18);
     }
-    if (_saved.phase === 'midnight') {
-        const alreadyRevealed = localStorage.getItem('vb_revealed') === '1';
-        if (alreadyRevealed) {
-            // Back-button return after reveal — reset to clean morning
-            clearSession();
-            try { localStorage.removeItem('vb_revealed'); } catch(e) {}
-            S.phase = 'morning'; S.vowel = null; S.color = null; S.sealed = false;
-        } else {
-            // First time reaching midnight — run the full reveal
-            setTimeout(() => { triggerMidnightMass(); }, 300);
+
+    const now = new Date();
+
+    // STRICT WINDOW: Only allows the Gatekeeper between 00:00 and 00:02
+    // If they arrive at 00:03, the opportunity has passed.
+    const isMidnightStrike = (now.getHours() === 0 && now.getMinutes() <= 2);
+
+    const alreadyRevealed = localStorage.getItem('vb_revealed') === '1';
+
+    if (isMidnightStrike && S.sealed && !alreadyRevealed) {
+        const gate = document.getElementById('midnight-gatekeeper');
+        if (gate) {
+            gate.style.display = 'flex';
+
+            gate.addEventListener('click', () => {
+                unlockAudio();
+                gate.style.transition = 'opacity 0.8s ease';
+                gate.style.opacity = '0';
+
+                setTimeout(() => {
+                    gate.remove();
+                    triggerMidnightMass();
+                }, 800);
+            });
         }
+    } else if (now.getHours() === 0 && !alreadyRevealed && S.sealed) {
+        // OPTIONAL: If it's after 00:02 but still the midnight hour,
+        // you could show a "You missed the strike" message or
+        // simply render the waiting state to show the missed opportunity.
+        console.log("The strike was missed.");
     }
-    // waiting phase — tick() will pick up naturally
 }
 
 render();
-
-const observer = new MutationObserver(() => {
-    if (document.getElementById('phase-evening').classList.contains('visible')) {
-        setTimeout(() => colorInput.focus(), 400);
-    }
-});
-observer.observe(document.getElementById('phase-evening'), {
-    attributes: true, attributeFilter: ['class']
-});
 
 </script>
 <!-- © 2026 A.C., Norrland — Morphysm Project. CC BY-NC-SA 4.0 -->
