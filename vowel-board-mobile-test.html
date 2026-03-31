@@ -1224,19 +1224,19 @@ document.addEventListener('touchend',   tryUnlock, { passive: true });
 const primerEl = document.getElementById('audio-primer');
 if (primerEl) {
     function dismissPrimer() {
-        // 1. Create AudioContext inside the gesture
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') audioCtx.resume();
+        // iOS fix: close any pre-created context — iOS only unlocks an AudioContext
+        // that was created inside a user gesture. The pre-init context (created on
+        // page load) is permanently untrusted on iOS even after resume().
+        if (audioCtx) { try { audioCtx.close(); } catch(e) {} }
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        // 2. Play a silent buffer in the same gesture — this is the iOS key
-        // Without this, Safari suspends the context between gestures
+        // Play a silent buffer synchronously in the same gesture — the iOS unlock key
         const silentBuf = audioCtx.createBuffer(1, 1, 22050);
         const silentSrc = audioCtx.createBufferSource();
         silentSrc.buffer = silentBuf;
         silentSrc.connect(audioCtx.destination);
         silentSrc.start(0);
+        audioCtx.resume().then(() => { audioReady = true; });
         markAudioReady();
 
         // 3. Dismiss the overlay
