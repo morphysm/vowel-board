@@ -1242,11 +1242,11 @@ if (primerEl) {
         // 3. Dismiss the overlay
         primerEl.classList.add('dismissed');
         setTimeout(() => { primerEl.remove(); }, 900);
-        primerEl.removeEventListener('touchstart', dismissPrimer);
-        primerEl.removeEventListener('click',      dismissPrimer);
+        primerEl.removeEventListener('touchend', dismissPrimer);
+        primerEl.removeEventListener('click',    dismissPrimer);
     }
-    primerEl.addEventListener('touchstart', dismissPrimer, { passive: true });
-    primerEl.addEventListener('click',      dismissPrimer);
+    primerEl.addEventListener('touchend', dismissPrimer, { passive: false });
+    primerEl.addEventListener('click',    dismissPrimer);
 }
 
 function bowCello(vowel, forceDur) {
@@ -1261,7 +1261,7 @@ function bowCello(vowel, forceDur) {
         });
         return;
     }
-    if (!audioReady || audioCtx.state !== 'running') return;
+    if (audioCtx.state !== 'running') return;
 
     const cave = CAVE[vowel] || CAVE.O;
     const dur  = forceDur || cave.dur;
