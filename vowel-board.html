@@ -1224,35 +1224,44 @@ document.addEventListener('touchend',   tryUnlock, { passive: true });
 const primerEl = document.getElementById('audio-primer');
 if (primerEl) {
     function dismissPrimer() {
-        // 1. Create AudioContext inside the gesture
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') audioCtx.resume();
+        // iOS fix: close any pre-created context — iOS only unlocks an AudioContext
+        // that was created inside a user gesture. The pre-init context (created on
+        // page load) is permanently untrusted on iOS even after resume().
+        if (audioCtx) { try { audioCtx.close(); } catch(e) {} }
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-        // 2. Play a silent buffer in the same gesture — this is the iOS key
-        // Without this, Safari suspends the context between gestures
+        // Play a silent buffer synchronously in the same gesture — the iOS unlock key
         const silentBuf = audioCtx.createBuffer(1, 1, 22050);
         const silentSrc = audioCtx.createBufferSource();
         silentSrc.buffer = silentBuf;
         silentSrc.connect(audioCtx.destination);
         silentSrc.start(0);
+        audioCtx.resume().then(() => { audioReady = true; });
         markAudioReady();
 
-        // 3. Dismiss the overlay
+        // Dismiss the overlay
         primerEl.classList.add('dismissed');
         setTimeout(() => { primerEl.remove(); }, 900);
-        primerEl.removeEventListener('touchstart', dismissPrimer);
-        primerEl.removeEventListener('click',      dismissPrimer);
+        primerEl.removeEventListener('touchend', dismissPrimer);
+        primerEl.removeEventListener('click',    dismissPrimer);
     }
-    primerEl.addEventListener('touchstart', dismissPrimer, { passive: true });
-    primerEl.addEventListener('click',      dismissPrimer);
+    primerEl.addEventListener('touchend', dismissPrimer, { passive: false });
+    primerEl.addEventListener('click',    dismissPrimer);
 }
 
 function bowCello(vowel, forceDur) {
-    if (!audioCtx || !audioReady) return;
-    if (audioCtx.state !== 'running') return;
+    if (!audioCtx) return;
     if (windCooldowns[vowel]) return;
+    // Mobile: context may still be suspended when this fires synchronously after resume()
+    // Resume async, then retry — desktop context is already running so this branch never hits
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume().then(() => {
+            audioReady = true;
+            bowCello(vowel, forceDur);
+        });
+        return;
+    }
+    if (audioCtx.state !== 'running') return;
 
     const cave = CAVE[vowel] || CAVE.O;
     const dur  = forceDur || cave.dur;
